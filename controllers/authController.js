@@ -6,9 +6,13 @@ const generateToken = (id) =>
 
 exports.register = async (req, res) => {
   try {
-    const { username, email, phone, password, role } = req.body;
+    const { username, email, phone, password, role,SubscritionType } = req.body;
     if (!username) {
       return res.status(400).json({ message: "Username is Required" });
+    }
+
+     if (!SubscritionType) {
+      return res.status(400).json({ message: "SubscritionType is Required" });
     }
 
     if (!phone || phone.trim() === "") {
@@ -43,6 +47,7 @@ exports.register = async (req, res) => {
       email,
       password,
       role,
+      SubscritionType,
     });
     res.status(201).json({
       token: generateToken(user._id),
@@ -51,6 +56,7 @@ exports.register = async (req, res) => {
         phone: user.phone,
         email: user.email,
         role: user.role,
+        SubscritionType:user.SubscritionType
       },
     });
   } catch (err) {
@@ -102,7 +108,7 @@ exports.getAllData = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   const userId = req.params.id;
-  const { username, email, phone } = req.body;
+  const { username, email, phone,SubscritionType,isActive } = req.body;
 
   try {
     const updatedUser = await User.findByIdAndUpdate(
@@ -111,6 +117,8 @@ exports.updateUser = async (req, res) => {
         username,
         email,
         phone,
+        SubscritionType,
+        isActive
       },
       { new: true, runValidators: true } // return updated user
     );
