@@ -52,3 +52,52 @@ exports.createTemplate = async (req, res) => {
   }
 };
 
+
+exports.updateTemplate = async (req, res) => {
+  try {
+    const { id } = req.params; // template ID to update
+    const { type, subject, content, templateId } = req.body;
+
+    if (!type || !subject || !content) {
+      return res.status(400).json({ message: 'Type, subject, and content are required.' });
+    }
+
+    // Check if template with the same subject exists for this user (excluding current one)
+    const existingTemplate = await Template.findOne({
+      _id: { $ne: id }, // exclude the current template
+      subject: { $regex: `^${subject}$`, $options: 'i' }, // case-insensitive match
+      user: req.user._id,
+    });
+
+    if (existingTemplate) {
+      return res.status(409).json({ message: 'Another template with the same subject already exists.' });
+    }
+
+    const updatedTemplate = await Template.findOneAndUpdate(
+      { _id: id, user: req.user._id },
+      {
+        type,
+        subject, // keep original casing
+        content,
+        templateId: templateId || '',
+      },
+      { new: true }
+    );
+
+    if (!updatedTemplate) {
+      return res.status(404).json({ message: 'Template not found or unauthorized' });
+    }
+
+    res.status(200).json({
+      message: 'Template updated successfully',
+      template: updatedTemplate,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to update template',
+      error: error.message,
+    });
+  }
+};
+
+

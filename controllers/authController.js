@@ -6,17 +6,18 @@ const generateToken = (id) =>
 
 exports.register = async (req, res) => {
   try {
-    const { username, email, phone, password, role,SubscritionType } = req.body;
+    const { username, email, phone, password, role, SubscritionType } = req.body;
+
     if (!username) {
       return res.status(400).json({ message: "Username is Required" });
     }
 
-     if (!SubscritionType) {
+    if (!SubscritionType) {
       return res.status(400).json({ message: "SubscritionType is Required" });
     }
 
     if (!phone || phone.trim() === "") {
-      return res.status(400).json({ message: "phone number is required." });
+      return res.status(400).json({ message: "Phone number is required." });
     }
 
     const cleanedPhone = phone.trim();
@@ -26,20 +27,41 @@ exports.register = async (req, res) => {
         message: "Phone number must be exactly 10 digits.",
       });
     }
+
     if (!email) {
       return res.status(400).json({ message: "Email is Required" });
     }
+
     if (!role) {
-      return res.status(400).json({ message: "role is Required" });
+      return res.status(400).json({ message: "Role is Required" });
     }
+
     if (!password || password.length < 4) {
       return res
         .status(400)
-        .json({ message: "Password is Required/must be at least 4 char" });
+        .json({ message: "Password must be at least 4 characters long." });
     }
 
     const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ message: "User already exists" });
+    if (exists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Assign credits based on subscription type
+    let credits = 0;
+    switch (SubscritionType.toLowerCase()) {
+      case "starter":
+        credits = 10000;
+        break;
+      case "pro":
+        credits = 50000;
+        break;
+      case "business":
+        credits = 100000;
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid subscription type" });
+    }
 
     const user = await User.create({
       username,
@@ -48,7 +70,9 @@ exports.register = async (req, res) => {
       password,
       role,
       SubscritionType,
+      credits
     });
+
     res.status(201).json({
       token: generateToken(user._id),
       user: {
@@ -56,13 +80,15 @@ exports.register = async (req, res) => {
         phone: user.phone,
         email: user.email,
         role: user.role,
-        SubscritionType:user.SubscritionType
+        SubscritionType: user.SubscritionType,
+        credits: user.credits
       },
     });
   } catch (err) {
     res.status(500).json({ message: "Registration error", error: err.message });
   }
 };
+
 
 exports.login = async (req, res) => {
   try {
@@ -92,7 +118,7 @@ exports.login = async (req, res) => {
 
 exports.getAllData = async (req, res) => {
   try {
-    // Fetch only users where role is 'admin'
+   
     const admins = await User.find({ role: "user" });
 
     res.status(200).json({

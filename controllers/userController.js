@@ -13,58 +13,11 @@ exports.getContacts = async (req, res) => {
   }
 };
 
-// exports.addContact = async (req, res) => {
-//   try {
-//     const { name, whatsapp, group } = req.body;
-
-//     console.log(req.body, "CSV body");
-
-//     if (!whatsapp || whatsapp.trim() === "") {
-//       return res.status(400).json({ message: "WhatsApp number is required." });
-//     }
-
-//     const cleanedPhone = whatsapp.trim();
-
-//     if (!/^\d{10}$/.test(cleanedPhone)) {
-//       return res.status(400).json({
-//         message: "Phone number must be exactly 10 digits.",
-//       });
-//     }
-
-//     // Check for duplicate
-//     const existing = await Contact.findOne({
-//       user: req.user._id,
-//       whatsapp: cleanedPhone,
-//     });
-
-//     if (existing) {
-//       return res.status(409).json({ message: "Contact already exists." });
-//     }
-
-//     // Create new contact
-//     const contact = await Contact.create({
-//       name: name?.trim() || "User", 
-//       whatsapp: cleanedPhone,
-//       group: group?.trim() || "",
-//       user: req.user._id,
-//     });
-
-//     res.status(201).json({
-//       message: "Contact created successfully.",
-//       contact,
-//     });
-//   } catch (err) {
-//     console.error("Error adding contact:", err);
-//     res.status(500).json({
-//       message: "Server error. Please try again later.",
-//     });
-//   }
-// };
-
-
 exports.addContact = async (req, res) => {
   try {
     const { name, whatsapp, group } = req.body;
+
+
 
     if (!whatsapp || whatsapp.trim() === "") {
       return res.status(400).json({ message: "WhatsApp number is required." });
@@ -78,30 +31,7 @@ exports.addContact = async (req, res) => {
       });
     }
 
-    // 🔐 Fetch user and their subscription type
-    const user = await Contact.findById(req.user._id);
-    const subscriptionType = user?.subscriptionType || "starter";
-
-    // 🔢 Define limits inline
-    const limits = {
-      starter: 1000,
-      pro: 5000,
-      business: 10000,
-    
-    };
-
-    const allowedLimit = limits[subscriptionType.toLowerCase()] || 500;
-
-    // 📊 Count how many contacts the user already has
-    const currentCount = await Contact.countDocuments({ user: req.user._id });
-
-    if (currentCount >= allowedLimit) {
-      return res.status(403).json({
-        message: `You've reached your contact limit (${allowedLimit}) for the ${subscriptionType} plan.`,
-      });
-    }
-
-    // ✅ Check for duplicate contact
+    // Check for duplicate
     const existing = await Contact.findOne({
       user: req.user._id,
       whatsapp: cleanedPhone,
@@ -111,9 +41,9 @@ exports.addContact = async (req, res) => {
       return res.status(409).json({ message: "Contact already exists." });
     }
 
-    // ✅ Save contact
+    // Create new contact
     const contact = await Contact.create({
-      name: name?.trim() || "User",
+      name: name?.trim() || "User", 
       whatsapp: cleanedPhone,
       group: group?.trim() || "",
       user: req.user._id,
@@ -123,12 +53,14 @@ exports.addContact = async (req, res) => {
       message: "Contact created successfully.",
       contact,
     });
-
   } catch (err) {
     console.error("Error adding contact:", err);
-    res.status(500).json({ message: "Server error. Please try again later." });
+    res.status(500).json({
+      message: "Server error. Please try again later.",
+    });
   }
 };
+
 
 exports.bulkUploadContacts = async (req, res) => {
   try {

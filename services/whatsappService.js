@@ -91,7 +91,7 @@
 //   client.on("disconnected", async (reason) => {
 //     console.log("❌ Disconnected. Reason:", reason);
 //     isReconnecting = false;
-//       isReady = false;  
+//       isReady = false;
 
 //     // swallow any Puppeteer race errors here
 //     try {
@@ -144,7 +144,7 @@
 // };
 
 // const getQrData = () => qrDataUrl;
-// const isBotReady = () => isReady; 
+// const isBotReady = () => isReady;
 
 // module.exports = {
 //   startBot,
@@ -174,7 +174,6 @@
 // process.on("uncaughtException", (err) => {
 //   console.warn("💥 Uncaught Exception:", err);
 // });
-
 
 // const { Client, LocalAuth } = require("whatsapp-web.js");
 // const fs = require("fs");
@@ -351,8 +350,6 @@
 //   startBot,
 // };
 
-
-
 // File: bot.js
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const fs = require("fs");
@@ -366,28 +363,38 @@ const readyStatus = new Map();
 const getClientForUser = (userId, retryCount = 3) => {
   if (clients.has(userId)) return clients.get(userId);
 
+  const startTime = Date.now(); // track total time
+
   const client = new Client({
     authStrategy: new LocalAuth({
       clientId: userId,
-      dataPath: path.join(__dirname, "..", ".wwebjs_auth")
+      dataPath: path.join(__dirname, "..", ".wwebjs_auth"),
     }),
     puppeteer: {
       headless: "new",
+      executablePath: require("puppeteer").executablePath(), // <--- Faster launch
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-accelerated-2d-canvas",
         "--disable-gpu",
-        "--window-size=1920,1080"
-      ]
+        "--single-process",
+        "--no-zygote",
+        "--disable-extensions",
+        "--disable-background-networking",
+        "--disable-software-rasterizer",
+        "--mute-audio",
+        "--hide-scrollbars",
+        "--window-size=1920,1080",
+      ],
     },
   });
 
   client.on("qr", (qr) => {
-    // Store raw QR text (frontend can convert to image)
     qrCodes.set(userId, qr);
-    console.log(`📲 [${userId}] QR Code generated.`);
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`📲 [${userId}] QR Code generated in ${duration}s`);
   });
 
   client.on("authenticated", () => {
@@ -401,8 +408,16 @@ const getClientForUser = (userId, retryCount = 3) => {
 
   client.on("disconnected", async (reason) => {
     console.warn(`❌ [${userId}] Disconnected: ${reason}`);
-    await destroyClient(userId);
-    setTimeout(() => getClientForUser(userId), 3000);
+    try {
+      await destroyClient(userId);
+    } catch (err) {
+      console.error(`⚠️ Error destroying client [${userId}]:`, err.message);
+    }
+
+    setTimeout(() => {
+      console.log(`🔄 [${userId}] Reinitializing after disconnect.`);
+      getClientForUser(userId);
+    }, 5000);
   });
 
   client.on("message", async (msg) => {
@@ -424,22 +439,27 @@ const getClientForUser = (userId, retryCount = 3) => {
     }
   });
 
-  const initializeWithRetry = async (retriesLeft) => {
+  const initializeWithRetry = async (client, userId, retriesLeft) => {
     try {
+      console.log(`🚀 [${userId}] Initializing WhatsApp client...`);
       await client.initialize();
     } catch (err) {
-      console.error(`⛔ [${userId}] Init failed: ${err.message}`);
+      console.error(`⛔ [${userId}] Initialization failed: ${err.message}`);
       if (retriesLeft > 0) {
-        setTimeout(() => initializeWithRetry(retriesLeft - 1), 5000);
+        console.log(`🔁 Retrying init for [${userId}] (${retriesLeft} left)...`);
+        setTimeout(() => initializeWithRetry(client, userId, retriesLeft - 1), 5000);
+      } else {
+        console.error(`💥 [${userId}] Max retries exceeded.`);
       }
     }
   };
 
-  initializeWithRetry(retryCount);
+  initializeWithRetry(client, userId, retryCount);
   clients.set(userId, client);
   readyStatus.set(userId, false);
   return client;
 };
+
 
 const destroyClient = async (userId) => {
   if (!clients.has(userId)) return;
@@ -472,7 +492,6 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-
 const startBot = () => {
   getClientForUser("admin");
 };
@@ -485,7 +504,3 @@ module.exports = {
   destroyClient,
   startBot,
 };
-
-
-
-
