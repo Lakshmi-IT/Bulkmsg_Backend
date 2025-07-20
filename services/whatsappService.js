@@ -1,211 +1,50 @@
-// // bot.js
+
+
+// // File: bot.js
 // const { Client, LocalAuth } = require("whatsapp-web.js");
 // const fs = require("fs");
 // const path = require("path");
 // const qrcode = require("qrcode");
 
-// let client = null;
-// let qrDataUrl = null;
-// let isReconnecting = false;
-// let isDestroying = false;
-// let isReady = false;
+// const clients = new Map();
+// const qrCodes = new Map();
+// const readyStatus = new Map();
 
-// // Reset and recreate client
-// const resetClient = async () => {
-//   if (isDestroying) return;
-//   isDestroying = true;
-
-//   try {
-//     if (client) {
-//       client.removeAllListeners();
-
-//       // Allow pending tasks to settle
-//       await new Promise((r) => setImmediate(r));
-
-//       await client.destroy().catch((err) => {
-//         console.warn("⚠️ Error destroying client:", err.message);
-//       });
-
-//       client = null;
-//       console.log("🛑 Client destroyed.");
-//     }
-
-//     const sessionPath = path.join(__dirname, "..", ".wwebjs_auth");
-//     if (fs.existsSync(sessionPath)) {
-//       fs.rmSync(sessionPath, { recursive: true, force: true });
-//       console.log("🧹 Auth session removed.");
-//     }
-
-//     qrDataUrl = null;
-
-//     // Delay before reinitializing
-//     setTimeout(() => {
-//       console.log("🔁 Reinitializing client...");
-//       isDestroying = false;
-//       initializeClient();
-//     }, 4000);
-//   } catch (err) {
-//     isDestroying = false;
-//     console.error("❌ Error during reset:", err);
-//   }
-// };
-
-// // Initialize WhatsApp client
-// const initializeClient = () => {
-//   if (client || isReconnecting) {
-//     console.log("⚠️ Client already initializing or running.");
-//     return;
-//   }
-
-//   isReconnecting = true;
-
-//   client = new Client({
-//     authStrategy: new LocalAuth(),
-//     puppeteer: {
-//       headless: true,
-//       args: ["--no-sandbox", "--disable-setuid-sandbox"],
-//     },
-//   });
-
-//   client.on("qr", (qr) => {
-//     qrcode.toDataURL(qr, (err, url) => {
-//       if (err) {
-//         console.error("❌ QR generation error:", err);
-//       } else {
-//         qrDataUrl = url;
-//         console.log("📲 QR Code ready");
-//       }
-//     });
-//   });
-
-//   client.on("authenticated", () => {
-//     console.log("✅ Authenticated successfully");
-//   });
-
-//   client.on("ready", () => {
-//     console.log("✅ WhatsApp bot is ready");
-//     isReconnecting = false;
-//      isReady = true;
-//   });
-
-//   client.on("disconnected", async (reason) => {
-//     console.log("❌ Disconnected. Reason:", reason);
-//     isReconnecting = false;
-//       isReady = false;
-
-//     // swallow any Puppeteer race errors here
-//     try {
-//       await new Promise((r) => setTimeout(r, 1000));
-//       await resetClient();
-//     } catch (err) {
-//       console.warn("⚠️ Error in disconnect handler:", err.message);
-//     }
-//   });
-
-//   client.on("message", async (msg) => {
-//     const text = msg.body.toLowerCase();
-
-//     try {
-//       if (text === "hi" || text === "hello") {
-//         await msg.reply(`👋 Hello! Welcome to *LakshmiIT*.\nTry: services, pricing, support`);
-//       } else if (text.includes("services")) {
-//         await msg.reply(`💼 Services:\n• Web & Mobile Dev\n• Cloud\n• AI/ML\n• Marketing`);
-//       } else if (text.includes("pricing")) {
-//         await msg.reply(`💰 Pricing on request. Call: +91 7897893299`);
-//       } else if (text.includes("support")) {
-//         await msg.reply(`🛠️ support@lakshmiit.com | +91 7897893299`);
-//       } else if (text.includes("website")) {
-//         await msg.reply(`🌐 https://www.lakshmiit.com`);
-//       } else if (text.includes("location")) {
-//         await msg.reply(`📍 Hyderabad\nhttps://goo.gl/maps/YOUR_LOCATION`);
-//       } else if (text.includes("brochure")) {
-//         const filePath = path.join(__dirname, "..", "LakshmiIT_Brochure.pdf");
-//         if (fs.existsSync(filePath)) {
-//           await msg.reply("📎 Sending brochure...");
-//           await client.sendMessage(msg.from, fs.createReadStream(filePath), {
-//             caption: "📄 LakshmiIT Brochure",
-//           });
-//         } else {
-//           await msg.reply("⚠️ Brochure not found.");
-//         }
-//       } else {
-//         await msg.reply(`🤖 Try: hi, services, pricing, support, website`);
-//       }
-//     } catch (err) {
-//       console.error("❌ Message handler error:", err);
-//     }
-//   });
-
-//   client.initialize();
-// };
-
-// const startBot = () => {
-//   initializeClient();
-// };
-
-// const getQrData = () => qrDataUrl;
-// const isBotReady = () => isReady;
-
-// module.exports = {
-//   startBot,
-//   getClient: () => client,
-//   qrDataUrlRef: getQrData,
-//   isBotReady
-// };
-
-// // Graceful shutdown
-// process.on("SIGINT", async () => {
-//   console.log("\n👋 Gracefully shutting down...");
-//   if (client) {
-//     try {
-//       await client.destroy();
-//       console.log("🛑 Client destroyed on shutdown.");
-//     } catch (err) {
-//       console.warn("⚠️ Shutdown destroy error:", err.message);
-//     }
-//   }
-//   process.exit(0);
-// });
-
-// // --- these two prevent your crash on ProtocolError ---
-// process.on("unhandledRejection", (reason) => {
-//   console.warn("🧨 Unhandled Rejection:", reason);
-// });
-// process.on("uncaughtException", (err) => {
-//   console.warn("💥 Uncaught Exception:", err);
-// });
-
-// const { Client, LocalAuth } = require("whatsapp-web.js");
-// const fs = require("fs");
-// const path = require("path");
-// const qrcode = require("qrcode");
-
-// const clients = new Map(); // Store clients by userId
-// const qrCodes = new Map(); // Store latest QR for each user
-// const readyStatus = new Map(); // Store ready status for each user
-
-// // Create or get an existing WhatsApp client for a user
 // const getClientForUser = (userId, retryCount = 3) => {
 //   if (clients.has(userId)) return clients.get(userId);
 
+//   const startTime = Date.now(); // track total time
+
 //   const client = new Client({
-//     authStrategy: new LocalAuth({ clientId: userId }),
+//     authStrategy: new LocalAuth({
+//       clientId: userId,
+//       dataPath: path.join(__dirname, "..", ".wwebjs_auth"),
+//     }),
 //     puppeteer: {
-//       headless: true,
-//       args: ["--no-sandbox", "--disable-setuid-sandbox"],
+//       headless: "new",
+//       executablePath: require("puppeteer").executablePath(), // <--- Faster launch
+//       args: [
+//         "--no-sandbox",
+//         "--disable-setuid-sandbox",
+//         "--disable-dev-shm-usage",
+//         "--disable-accelerated-2d-canvas",
+//         "--disable-gpu",
+//         "--single-process",
+//         "--no-zygote",
+//         "--disable-extensions",
+//         "--disable-background-networking",
+//         "--disable-software-rasterizer",
+//         "--mute-audio",
+//         "--hide-scrollbars",
+//         "--window-size=1920,1080",
+//       ],
 //     },
 //   });
 
-//   // Setup client events
 //   client.on("qr", (qr) => {
-//     qrcode.toDataURL(qr, (err, url) => {
-//       if (!err) {
-//         qrCodes.set(userId, url);
-//         console.log(`📲 [${userId}] QR Code ready`);
-//       } else {
-//         console.error(`❌ [${userId}] QR generation error:`, err);
-//       }
-//     });
+//     qrCodes.set(userId, qr);
+//     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+//     console.log(`📲 [${userId}] QR Code generated in ${duration}s`);
 //   });
 
 //   client.on("authenticated", () => {
@@ -218,125 +57,91 @@
 //   });
 
 //   client.on("disconnected", async (reason) => {
-//     console.log(`❌ [${userId}] Disconnected: ${reason}`);
-//     await destroyClient(userId);
-//     console.log(`🔁 [${userId}] Reinitializing after disconnect...`);
-//     setTimeout(() => getClientForUser(userId), 3000); // auto-reinit after 3s
+//     console.warn(`❌ [${userId}] Disconnected: ${reason}`);
+//     try {
+//       await destroyClient(userId);
+//     } catch (err) {
+//       console.error(`⚠️ Error destroying client [${userId}]:`, err.message);
+//     }
+
+//     setTimeout(() => {
+//       console.log(`🔄 [${userId}] Reinitializing after disconnect.`);
+//       getClientForUser(userId);
+//     }, 5000);
 //   });
 
 //   client.on("message", async (msg) => {
 //     const text = msg.body.toLowerCase();
 //     try {
 //       if (text === "hi" || text === "hello") {
-//         await msg.reply(`👋 Hello! Welcome to *LakshmiIT*.\nTry: services, pricing, support`);
+//         await msg.reply(`👋 Hello from LakshmiIT! Try: services, pricing, support.`);
 //       } else if (text.includes("services")) {
-//         await msg.reply(`💼 Services:\n• Web & Mobile Dev\n• Cloud\n• AI/ML\n• Marketing`);
+//         await msg.reply(`💼 Services:\n• Web & Mobile Dev\n• AI\n• Cloud & Marketing`);
 //       } else if (text.includes("pricing")) {
 //         await msg.reply(`💰 Pricing on request. Call: +91 7897893299`);
 //       } else if (text.includes("support")) {
 //         await msg.reply(`🛠️ support@lakshmiit.com | +91 7897893299`);
-//       } else if (text.includes("website")) {
-//         await msg.reply(`🌐 https://www.lakshmiit.com`);
-//       } else if (text.includes("location")) {
-//         await msg.reply(`📍 Hyderabad\nhttps://goo.gl/maps/YOUR_LOCATION`);
-//       } else if (text.includes("brochure")) {
-//         const filePath = path.join(__dirname, "..", "LakshmiIT_Brochure.pdf");
-//         if (fs.existsSync(filePath)) {
-//           await msg.reply("📎 Sending brochure...");
-//           await client.sendMessage(msg.from, fs.createReadStream(filePath), {
-//             caption: "📄 LakshmiIT Brochure",
-//           });
-//         } else {
-//           await msg.reply("⚠️ Brochure not found.");
-//         }
 //       } else {
-//         await msg.reply(`🤖 Try: hi, services, pricing, support, website`);
+//         await msg.reply(`🤖 Try: hi, services, pricing, support`);
 //       }
 //     } catch (err) {
-//       console.error(`❌ [${userId}] Message handler error:`, err);
+//       console.error(`❌ [${userId}] Message error:`, err);
 //     }
 //   });
 
-//   // Initialize with retry logic
-//   const initializeWithRetry = async (retriesLeft) => {
+//   const initializeWithRetry = async (client, userId, retriesLeft) => {
 //     try {
+//       console.log(`🚀 [${userId}] Initializing WhatsApp client...`);
 //       await client.initialize();
-//       console.log(`🚀 [${userId}] Initialization successful`);
 //     } catch (err) {
 //       console.error(`⛔ [${userId}] Initialization failed: ${err.message}`);
 //       if (retriesLeft > 0) {
-//         console.log(`🔁 [${userId}] Retrying in 5s... (${retriesLeft} retries left)`);
-//         setTimeout(() => initializeWithRetry(retriesLeft - 1), 5000);
+//         console.log(`🔁 Retrying init for [${userId}] (${retriesLeft} left)...`);
+//         setTimeout(() => initializeWithRetry(client, userId, retriesLeft - 1), 5000);
 //       } else {
-//         console.log(`❌ [${userId}] Failed to initialize after retries.`);
+//         console.error(`💥 [${userId}] Max retries exceeded.`);
 //       }
 //     }
 //   };
 
-//   initializeWithRetry(retryCount);
-
+//   initializeWithRetry(client, userId, retryCount);
 //   clients.set(userId, client);
 //   readyStatus.set(userId, false);
-
 //   return client;
 // };
 
-// // Destroy a client session and clean up
+
 // const destroyClient = async (userId) => {
 //   if (!clients.has(userId)) return;
-
 //   const client = clients.get(userId);
 //   try {
 //     client.removeAllListeners();
 //     await client.destroy();
-//     console.log(`🛑 [${userId}] Client destroyed.`);
 //   } catch (err) {
-//     console.warn(`⚠️ [${userId}] Error destroying client:`, err.message);
+//     console.warn(`⚠️ Destroy error: ${err.message}`);
 //   }
-
 //   clients.delete(userId);
 //   qrCodes.delete(userId);
 //   readyStatus.delete(userId);
-
-//   // Optional: remove session files
 //   const sessionPath = path.join(__dirname, "..", ".wwebjs_auth", userId);
 //   if (fs.existsSync(sessionPath)) {
 //     fs.rmSync(sessionPath, { recursive: true, force: true });
-//     console.log(`🧹 [${userId}] Auth session removed`);
 //   }
 // };
 
-// // Get QR data URL
 // const getQrData = (userId) => qrCodes.get(userId) || null;
-
-// // Check if client is ready
 // const isBotReady = (userId) => readyStatus.get(userId) || false;
-
-// // Send message
 // const sendMessage = async (userId, to, message) => {
 //   const client = clients.get(userId);
 //   if (!client || !isBotReady(userId)) throw new Error("Client not ready");
-
 //   return await client.sendMessage(to, message);
 // };
 
-// // Shutdown all clients on SIGINT
 // process.on("SIGINT", async () => {
-//   console.log("\n👋 Gracefully shutting down all clients...");
-//   for (const userId of clients.keys()) {
-//     await destroyClient(userId);
-//   }
+//   for (const userId of clients.keys()) await destroyClient(userId);
 //   process.exit(0);
 // });
 
-// process.on("unhandledRejection", (reason) => {
-//   console.warn("🧨 Unhandled Rejection:", reason);
-// });
-// process.on("uncaughtException", (err) => {
-//   console.warn("💥 Uncaught Exception:", err);
-// });
-
-// // Start the default session
 // const startBot = () => {
 //   getClientForUser("admin");
 // };
@@ -350,29 +155,41 @@
 //   startBot,
 // };
 
+
 // File: bot.js
-const { Client, LocalAuth } = require("whatsapp-web.js");
+
+// 
+
+const { Client, MessageMedia } = require("whatsapp-web.js");
 const fs = require("fs");
 const path = require("path");
-const qrcode = require("qrcode");
 
 const clients = new Map();
 const qrCodes = new Map();
 const readyStatus = new Map();
+const lastQRGeneratedTime = new Map();
+
+function formatNumber(raw) {
+  return raw.replace(/\D/g, '') + "@c.us";
+}
+
+function waitRandom(min, max) {
+  const delay = Math.floor(Math.random() * (max - min + 1)) + min;
+  return new Promise(res => setTimeout(res, delay));
+}
 
 const getClientForUser = (userId, retryCount = 3) => {
-  if (clients.has(userId)) return clients.get(userId);
+  if (clients.has(userId) && readyStatus.get(userId)) {
+    console.log(`ℹ️ [${userId}] Client already ready.`);
+    return clients.get(userId);
+  }
 
-  const startTime = Date.now(); // track total time
+  const startTime = Date.now();
 
   const client = new Client({
-    authStrategy: new LocalAuth({
-      clientId: userId,
-      dataPath: path.join(__dirname, "..", ".wwebjs_auth"),
-    }),
     puppeteer: {
       headless: "new",
-      executablePath: require("puppeteer").executablePath(), // <--- Faster launch
+      executablePath: require("puppeteer").executablePath(),
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -392,13 +209,22 @@ const getClientForUser = (userId, retryCount = 3) => {
   });
 
   client.on("qr", (qr) => {
+    const now = Date.now();
+    const lastTime = lastQRGeneratedTime.get(userId) || 0;
+    if (now - lastTime < 15000) return;
+    lastQRGeneratedTime.set(userId, now);
+
     qrCodes.set(userId, qr);
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    const duration = ((now - startTime) / 1000).toFixed(2);
     console.log(`📲 [${userId}] QR Code generated in ${duration}s`);
   });
 
   client.on("authenticated", () => {
     console.log(`✅ [${userId}] Authenticated`);
+  });
+
+  client.on("auth_failure", (msg) => {
+    console.error(`🔐 [${userId}] Auth failure: ${msg}`);
   });
 
   client.on("ready", () => {
@@ -414,10 +240,12 @@ const getClientForUser = (userId, retryCount = 3) => {
       console.error(`⚠️ Error destroying client [${userId}]:`, err.message);
     }
 
-    setTimeout(() => {
-      console.log(`🔄 [${userId}] Reinitializing after disconnect.`);
-      getClientForUser(userId);
-    }, 5000);
+    if (reason !== "NAVIGATION") {
+      setTimeout(() => {
+        console.log(`🔄 [${userId}] Reinitializing after disconnect.`);
+        getClientForUser(userId);
+      }, 5000);
+    }
   });
 
   client.on("message", async (msg) => {
@@ -460,7 +288,6 @@ const getClientForUser = (userId, retryCount = 3) => {
   return client;
 };
 
-
 const destroyClient = async (userId) => {
   if (!clients.has(userId)) return;
   const client = clients.get(userId);
@@ -473,22 +300,80 @@ const destroyClient = async (userId) => {
   clients.delete(userId);
   qrCodes.delete(userId);
   readyStatus.delete(userId);
-  const sessionPath = path.join(__dirname, "..", ".wwebjs_auth", userId);
-  if (fs.existsSync(sessionPath)) {
-    fs.rmSync(sessionPath, { recursive: true, force: true });
-  }
 };
 
 const getQrData = (userId) => qrCodes.get(userId) || null;
 const isBotReady = (userId) => readyStatus.get(userId) || false;
+
 const sendMessage = async (userId, to, message) => {
   const client = clients.get(userId);
   if (!client || !isBotReady(userId)) throw new Error("Client not ready");
   return await client.sendMessage(to, message);
 };
 
+const sendBulkMessages = async (userId, { numbers, message, attachment }) => {
+  const client = clients.get(userId);
+  if (!client || !isBotReady(userId)) {
+    console.error(`❌ [${userId}] Not connected or not ready.`);
+    return { error: "WhatsApp not connected" };
+  }
+
+  if (!Array.isArray(numbers) || numbers.length === 0) {
+    return { error: "Invalid numbers list" };
+  }
+
+  const media = attachment ? MessageMedia.fromFilePath(attachment) : null;
+  let sentCount = 0;
+  let failedCount = 0;
+
+  console.log(`🚀 [${userId}] Starting bulk send to ${numbers.length} numbers.`);
+
+  for (let i = 0; i < numbers.length; i++) {
+    const rawNumber = numbers[i];
+    const chatId = formatNumber(rawNumber);
+
+    try {
+      const isRegistered = await client.getNumberId(rawNumber.replace(/\D/g, ''));
+      if (!isRegistered) {
+        console.log(`⚠️ [${userId}] Skipping ${rawNumber} (not on WhatsApp)`);
+        continue;
+      }
+
+      if (media) {
+        await client.sendMessage(chatId, media, { caption: message });
+      } else {
+        await client.sendMessage(chatId, message);
+      }
+
+      sentCount++;
+      console.log(`✅ [${userId}] Sent to ${rawNumber}`);
+    } catch (err) {
+      failedCount++;
+      console.error(`❌ [${userId}] Failed to send to ${rawNumber}:`, err.message);
+    }
+
+    await waitRandom(3000, 10000);
+
+    if ((i + 1) % 120 === 0) {
+      console.log(`⏸ [${userId}] Cooldown for 2 minutes...`);
+      await waitRandom(120000, 150000);
+    }
+  }
+
+  console.log(`🎉 [${userId}] Done. ✅ Sent: ${sentCount}, ❌ Failed: ${failedCount}`);
+
+  return {
+    success: true,
+    sent: sentCount,
+    failed: failedCount,
+    total: numbers.length,
+  };
+};
+
 process.on("SIGINT", async () => {
-  for (const userId of clients.keys()) await destroyClient(userId);
+  for (const userId of clients.keys()) {
+    await destroyClient(userId);
+  }
   process.exit(0);
 });
 
@@ -501,6 +386,7 @@ module.exports = {
   getQrData,
   isBotReady,
   sendMessage,
+  sendBulkMessages,
   destroyClient,
   startBot,
 };
